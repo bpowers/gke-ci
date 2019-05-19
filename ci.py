@@ -87,8 +87,7 @@ def run(loc, project, ignore, delay):
     "Loop endlessly checking for builds."
     print("getting started listening on %s" % (project,))
     subscriber = pubsub_v1.SubscriberClient()
-    topic = client.topic('cloud_builds')
-    subscriber.create_subscription(name=project, topic=topic)
+    subscriber.create_subscription(name=project, topic='cloud_builds')
 
     def callback(message):
         "called for new messages on our topic"
