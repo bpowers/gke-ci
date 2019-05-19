@@ -10,12 +10,12 @@ import time
 import json
 import requests
 from collections import defaultdict
-from google.cloud import pubsub
+from google.cloud import pubsub_v1
 
 
 def handle(msg, loc, ignore):
     "Handle individual PubSub messages."
-    print "handle: %s\n%s" % (msg.data, msg.attributes)
+    print("handle: %s\n%s" % (msg.data, msg.attributes))
     data = json.loads(msg.data)
     status = msg.attributes['status']
     logUrl = data['logUrl']
@@ -23,10 +23,10 @@ def handle(msg, loc, ignore):
     repo = data['source']['repoSource']['repoName']
     ks = build_k8s_cli()
     if status == 'SUCCESS':
-        print "[%s] Build succeeded." % (repo,)
+        print("[%s] Build succeeded." % (repo,))
         all_deployments = deployments(ks, loc, ignore)
         for image in images:
-            print "[%s] Updated %s." % (repo, image)
+            print("[%s] Updated %s." % (repo, image))
             wo_tag = container_without_tag(image)
             for dep_cont, deps in all_deployments.iteritems():
                 for dep in deps:
@@ -37,7 +37,7 @@ def handle(msg, loc, ignore):
                         for curr_cont in curr_containers:
                             old_image = curr_cont['image']
                             if old_image.startswith(dep_cont):
-                                print "[%s] Upgrading from %s to use %s" % (repo, old_image, image)
+                                print("[%s] Upgrading from %s to use %s" % (repo, old_image, image))
                                 curr_cont['image'] = image
                                 changed = True
                         if changed:
@@ -45,7 +45,7 @@ def handle(msg, loc, ignore):
                             headers = copy.deepcopy(ks.headers)
                             headers['Content-Type'] = 'application/strategic-merge-patch+json'
                             r= ks.patch("%s%s" % (loc, dep_link), headers=headers, data=json.dumps(update))
-                            print "[%s] %s from %s\n%s" % (repo, r.status_code, r.request.url, r.content)
+                            print("[%s] %s from %s\n%s" % (repo, r.status_code, r.request.url, r.content))
 
 
 def container_without_tag(con_str):
@@ -63,7 +63,7 @@ def deployments(cli, loc, ignore):
         #       should be considered as opposed to defaulting everything in
         if dep['metadata']['namespace'] in ignore:
             continue
-        print 'found deployment: %s' % (name,)
+        print('found deployment: %s' % (name,))
         containers = dep['spec']['template']['spec']['containers']
         for container in containers:
             img = container_without_tag(container['image'])
@@ -85,23 +85,28 @@ def build_k8s_cli():
 
 def run(loc, project, ignore, delay):
     "Loop endlessly checking for builds."
-    print "getting started listening on %s" % (project,)
-    while True:
-        client = pubsub.Client()
-        topic = client.topic('cloud_builds')
-        s = pubsub.subscription.Subscription(project, topic=topic)
-        pulled = s.pull(max_messages=1)
-        for ack_id, message in pulled:
-            try:
-                handle(message, loc, ignore)
-                s.acknowledge([ack_id])
-            except Exception, e:
-                print "failed handling: %s\nattrs: %s\ndata: %s" % (e, message.attributes, message.data)
-                ex_type, ex, tb = sys.exc_info()
-                traceback.print_tb(tb)
-                del tb
+    print("getting started listening on %s" % (project,))
+    subscriber = pubsub_v1.SubscriberClient()
+    topic = client.topic('cloud_builds')
+    subscriber.create_subscription(name=project, topic=topic)
 
+    def callback(message):
+        "called for new messages on our topic"
+        handle(message, loc, ignore)
+        message.ack()
         time.sleep(delay)
+
+    future = subscriber.subscribe(project, callback)
+
+    try:
+        future.result()
+    except Exception as ex:
+        print("failed handling: %s\nattrs: %s\ndata: %s" % (e, message.attributes, message.data))
+        ex_type, ex, tb = sys.exc_info()
+        traceback.print_tb(tb)
+        del tb
+        # subscription.close()
+        # raise
 
 
 def main():
