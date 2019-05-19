@@ -10,8 +10,8 @@ RUN apk add --update \
 WORKDIR /srv
 COPY . /srv
 RUN python3 -m venv env
+RUN env/bin/pip install --upgrade pip
 RUN env/bin/pip install -r requirements.txt
-RUN env/bin/pip install --upgrade ply
 
 FROM python:3-alpine3.9
 RUN apk add --update \
