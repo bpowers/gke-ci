@@ -14,8 +14,6 @@ RUN env/bin/pip install --upgrade pip
 RUN env/bin/pip install -r requirements.txt
 
 FROM python:3-alpine3.9
-RUN apk add --update \
-    python3
 COPY --from=builder \
   /srv/ \
   /srv/
