@@ -87,7 +87,7 @@ def run(loc, project, ignore, delay, topic):
     "Loop endlessly checking for builds."
     print("getting started listening on %s" % (project,))
     subscriber = pubsub_v1.SubscriberClient()
-    subscriber.create_subscription(name=project, topic=topic)
+    subscription_path = subscriber.subscription_path(project, topic)
 
     def callback(message):
         "called for new messages on our topic"
@@ -95,7 +95,7 @@ def run(loc, project, ignore, delay, topic):
         message.ack()
         time.sleep(delay)
 
-    future = subscriber.subscribe(project, callback)
+    future = subscriber.subscribe(subscription_path, callback=callback)
 
     try:
         future.result()
