@@ -83,11 +83,11 @@ def build_k8s_cli():
     return s
 
 
-def run(loc, project, ignore, delay):
+def run(loc, project, ignore, delay, topic):
     "Loop endlessly checking for builds."
     print("getting started listening on %s" % (project,))
     subscriber = pubsub_v1.SubscriberClient()
-    subscriber.create_subscription(name=project, topic='cloud_builds')
+    subscriber.create_subscription(name=project, topic=topic)
 
     def callback(message):
         "called for new messages on our topic"
@@ -112,11 +112,12 @@ def main():
     "Parse args, start the program."
     p = argparse.ArgumentParser(description='Continuous integration for GKE.')
     p.add_argument('project', help='name of GCE project')
+    p.add_argument('--topic', help='topic to subscribe to')
     p.add_argument('--loc', default='https://kubernetes', help='location to access Kubernetes API')
     p.add_argument('--delay', type=int, default=15.0, help='delay between checking for messages')
     p.add_argument('--ignore', default='kube-system', help='csv of namespaces to ignore')
     args = p.parse_args()
-    run(args.loc, args.project, args.ignore.split(','), args.delay)
+    run(args.loc, args.project, args.ignore.split(','), args.delay, args.topic)
 
 
 if __name__ == "__main__":
