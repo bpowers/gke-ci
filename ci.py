@@ -99,7 +99,7 @@ def run(loc, project, ignore, delay, topic):
 
     try:
         future.result()
-    except Exception as ex:
+    except Exception as e:
         print("failed handling: %s\nattrs: %s\ndata: %s" % (e, message.attributes, message.data))
         ex_type, ex, tb = sys.exc_info()
         traceback.print_tb(tb)
