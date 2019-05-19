@@ -28,7 +28,7 @@ def handle(msg, loc, ignore):
         for image in images:
             print("[%s] Updated %s." % (repo, image))
             wo_tag = container_without_tag(image)
-            for dep_cont, deps in all_deployments.iteritems():
+            for dep_cont, deps in all_deployments.items():
                 for dep in deps:
                     if wo_tag == dep_cont:
                         changed = False
