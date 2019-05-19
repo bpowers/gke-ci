@@ -1,4 +1,4 @@
-FROM python:2-alpine3.7 as builder
+FROM python:2-alpine3.9 as builder
 
 RUN apk add --update \
     python \
@@ -14,7 +14,7 @@ RUN virtualenv env
 RUN env/bin/pip install -r requirements.txt
 RUN env/bin/pip install --upgrade ply
 
-FROM python:2-alpine3.7
+FROM python:2-alpine3.9
 COPY --from=builder \
   /srv/ \
   /srv/
